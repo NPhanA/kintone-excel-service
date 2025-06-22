@@ -1,0 +1,19 @@
+{
+  "name": "kintone_node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "excelConnect.js",
+    "scripts": {
+    "start": "node excelConnect.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.10.0",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "exceljs": "^4.4.0",
+    "express": "^5.1.0",
+    "xlsx": "^0.18.5"
+  }
+}
