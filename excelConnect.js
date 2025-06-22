@@ -21,7 +21,7 @@ const API_TOKEN = process.env.KINTONE_API_TOKEN;
 // 🧠 Google Sheets setup
 const SHEET_ID = "1jUR--ev5AjX_4XzL4aB8HWoHUuFW_ychSuwnwPdd1pw";
 const SHEET_NAME = "Sheet1";
-const SERVICE_ACCOUNT_FILE = "regal-crowbar-382308-2fd4bee0684c.json"; // downloaded file
+const SERVICE_ACCOUNT_FILE = path.join(__dirname, "regal-crowbar-382308-2fd4bee0684c.json");
 
 // 🔑 Google auth
 const auth = new google.auth.GoogleAuth({
