@@ -1,35 +1,44 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const ExcelJS = require("exceljs");
 const axios = require("axios");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const { google } = require("googleapis");
 
 const app = express();
 app.use(bodyParser.json());
 
-// ✅ Enable CORS for your Kintone domain
 app.use(cors({
   origin: 'https://qmmtawzjw7cs.kintone.com'
 }));
 
-// ✅ Load config from environment variables
+// 🌐 Kintone config from env
 const KINTONE_DOMAIN = process.env.KINTONE_DOMAIN;
 const KINTONE_APP_ID = process.env.KINTONE_APP_ID;
 const API_TOKEN = process.env.KINTONE_API_TOKEN;
 
-const EXCEL_FILE = "output.xlsx";
+// 🧠 Google Sheets setup
+const SHEET_ID = "1jUR--ev5AjX_4XzL4aB8HWoHUuFW_ychSuwnwPdd1pw";
+const SHEET_NAME = "Sheet1";
+const SERVICE_ACCOUNT_FILE = "regal-crowbar-382308-2fd4bee0684c"; // downloaded file
 
-// ✅ Webhook endpoint — generate Excel on Kintone update
+// 🔑 Google auth
+const auth = new google.auth.GoogleAuth({
+  keyFile: SERVICE_ACCOUNT_FILE,
+  scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+});
+
+// 🧠 Webhook endpoint
 app.post("/webhook", async (req, res) => {
   try {
     console.log("📥 Webhook received");
 
     const records = await fetchAllRecordsFromKintone();
-    await writeRecordsToExcel(records);
+    const rows = formatRecordsForSheets(records);
+    await writeToSheet(rows);
 
-    console.log(`✅ Synced ${records.length} records to ${EXCEL_FILE}`);
+    console.log(`✅ Synced ${records.length} records to Google Sheets`);
     res.send("ok");
   } catch (err) {
     console.error("❌ Error syncing:", err.message);
@@ -37,22 +46,7 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-// ✅ Download endpoint — user can fetch Excel
-app.get("/download-excel", (req, res) => {
-  const filePath = path.resolve(__dirname, EXCEL_FILE);
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send("File not found");
-  }
-  res.download(filePath, EXCEL_FILE);
-});
-
-// ✅ Dynamic port for Render
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
-
-// 🔄 Fetch all records from Kintone
+// 🧠 Helper: Get all records from Kintone
 async function fetchAllRecordsFromKintone() {
   let all = [];
   let offset = 0;
@@ -75,25 +69,45 @@ async function fetchAllRecordsFromKintone() {
   return all;
 }
 
-// ✏️ Save to Excel
-async function writeRecordsToExcel(records) {
-  const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet("Subjects");
-
-  // Header
-  sheet.addRow(["Mã môn học", "Tên môn học", "Tín chỉ", "Học kỳ 1", "Học kỳ 2"]);
+// 🔄 Convert Kintone records into sheet rows
+function formatRecordsForSheets(records) {
+  const rows = [
+    ["Mã môn học", "Tên môn học", "Tín chỉ", "Học kỳ 1", "Học kỳ 2"]
+  ];
 
   for (const rec of records) {
-    const hk1Checked = (rec.available_hk1?.value || []).includes("Yes") ? "Yes" : "No";
-    const hk2Checked = (rec.available_hk2?.value || []).includes("Yes") ? "Yes" : "No";
-    sheet.addRow([
+    const hk1 = (rec.available_hk1?.value || []).includes("Yes") ? "Yes" : "No";
+    const hk2 = (rec.available_hk2?.value || []).includes("Yes") ? "Yes" : "No";
+
+    rows.push([
       rec.code_subject?.value || "",
       rec.subject_name?.value || "",
       rec.credits?.value || "",
-      hk1Checked,
-      hk2Checked
+      hk1,
+      hk2
     ]);
   }
 
-  await workbook.xlsx.writeFile(EXCEL_FILE);
+  return rows;
 }
+
+// 📝 Write data to Google Sheets
+async function writeToSheet(rows) {
+  const client = await auth.getClient();
+  const sheets = google.sheets({ version: "v4", auth: client });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!A1`,
+    valueInputOption: "RAW",
+    resource: {
+      values: rows
+    }
+  });
+}
+
+// 🟢 Server start
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
