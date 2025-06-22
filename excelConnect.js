@@ -2,21 +2,26 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ExcelJS = require("exceljs");
 const axios = require("axios");
+const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
 
 const app = express();
 app.use(bodyParser.json());
 
-const cors = require('cors');
-
+// ✅ Enable CORS for your Kintone domain
 app.use(cors({
-  origin: 'https://qmmtawzjw7cs.kintone.com' // ← your Kintone subdomain
+  origin: 'https://qmmtawzjw7cs.kintone.com'
 }));
-// 🛠️ CONFIG — change these to match your Kintone setup
-const KINTONE_DOMAIN = "qmmtawzjw7cs.kintone.com";      // e.g., abc.kintone.com
-const KINTONE_APP_ID = 37;                           // e.g., 7
-const API_TOKEN = "vC4BLUe96CmRQ2kN8LUK6KcZs7iUWIIyJ89cEpBs";           // App-level token with view permissions
+
+// ✅ Load config from environment variables
+const KINTONE_DOMAIN = process.env.KINTONE_DOMAIN;
+const KINTONE_APP_ID = process.env.KINTONE_APP_ID;
+const API_TOKEN = process.env.KINTONE_API_TOKEN;
+
 const EXCEL_FILE = "output.xlsx";
 
+// ✅ Webhook endpoint — generate Excel on Kintone update
 app.post("/webhook", async (req, res) => {
   try {
     console.log("📥 Webhook received");
@@ -32,11 +37,22 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log("🚀 Server running on http://localhost:3000");
+// ✅ Download endpoint — user can fetch Excel
+app.get("/download-excel", (req, res) => {
+  const filePath = path.resolve(__dirname, EXCEL_FILE);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send("File not found");
+  }
+  res.download(filePath, EXCEL_FILE);
 });
 
-// 🔄 Fetch all records using Kintone REST API
+// ✅ Dynamic port for Render
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
+// 🔄 Fetch all records from Kintone
 async function fetchAllRecordsFromKintone() {
   let all = [];
   let offset = 0;
@@ -59,19 +75,17 @@ async function fetchAllRecordsFromKintone() {
   return all;
 }
 
-// ✏️ Write all records to Excel file
+// ✏️ Save to Excel
 async function writeRecordsToExcel(records) {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Subjects");
 
-  // Header row
+  // Header
   sheet.addRow(["Mã môn học", "Tên môn học", "Tín chỉ", "Học kỳ 1", "Học kỳ 2"]);
 
-
-  // Data rows
   for (const rec of records) {
-const hk1Checked = (rec.available_hk1?.value || []).includes("Yes") ? "Yes" : "No";
-const hk2Checked = (rec.available_hk2?.value || []).includes("Yes") ? "Yes" : "No";
+    const hk1Checked = (rec.available_hk1?.value || []).includes("Yes") ? "Yes" : "No";
+    const hk2Checked = (rec.available_hk2?.value || []).includes("Yes") ? "Yes" : "No";
     sheet.addRow([
       rec.code_subject?.value || "",
       rec.subject_name?.value || "",
