@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "excelConnect.js",
-    "scripts": {
+  "scripts": {
     "start": "node excelConnect.js"
   },
   "author": "",
@@ -14,6 +14,7 @@
     "cors": "^2.8.5",
     "exceljs": "^4.4.0",
     "express": "^5.1.0",
+    "googleapis": "^150.0.1",
     "xlsx": "^0.18.5"
   }
 }

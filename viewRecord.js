@@ -57,7 +57,7 @@
       }));
 
       await bulkUpdate(updates);
-await fetch("https://fbb6-2402-800-61cf-dda7-1d54-47a0-b91c-8593.ngrok-free.app/webhook", {
+await fetch("https://kintone-excel-service.onrender.com/webhook", {
   method: "POST"
 });
       alert('✅ Updates saved!');
