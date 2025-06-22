@@ -84,7 +84,8 @@ function formatRecordsForSheets(records) {
       rec.subject_name?.value || "",
       rec.credits?.value || "",
       hk1,
-      hk2
+      hk2,
+      rec.$id?.value || "" 
     ]);
   }
 
