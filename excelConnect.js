@@ -9,9 +9,7 @@ const { google } = require("googleapis");
 const app = express();
 app.use(bodyParser.json());
 
-app.use(cors({
-  origin: 'https://qmmtawzjw7cs.kintone.com'
-}));
+app.use(cors());
 
 // 🌐 Kintone config from env
 const KINTONE_DOMAIN = process.env.KINTONE_DOMAIN;
